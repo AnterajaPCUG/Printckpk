@@ -433,3 +433,14 @@ hasilTeks.select();
 navigator.clipboard.writeText(hasilTeks.value);
 alert('Teks berhasil disalin!');
 }
+function hapusKotakHasil() {
+  hasilTeks.value = '';
+  nilaiBarcodeTerakhir = '';
+  barcodeArea.style.display = 'none';
+  
+  const bCtx = barcodeCanvas.getContext('2d');
+  bCtx.clearRect(0, 0, barcodeCanvas.width, barcodeCanvas.height);
+
+  statusText.style.color = '#64748b';
+  statusText.innerText = 'Kotak teks & barcode telah dibersihkan.';
+}
