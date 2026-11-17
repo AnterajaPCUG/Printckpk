@@ -160,3 +160,10 @@ hr {
 .btn-link-luar:active {
   background-color: #be123c;
 }
+button.danger {
+  background-color: #dc2626;
+}
+
+button.danger:active {
+  background-color: #b91c1c;
+}
