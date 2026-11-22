@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCR + Crop + Barcode + BTP 80mm</title>
+  <link rel="stylesheet" href="style.css?v=10">
+</head>
+<body>
+
+<div class="card">
+  <h2>Scan, Crop & Print BTP 80mm</h2>
+  
+  <div class="upload-box">
+    <!-- Input tersembunyi untuk Galeri & Kamera -->
+    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+
+    <!-- Dua tombol pilihan sumber gambar -->
+    <div class="btn-group" style="margin-top: 0;">
+      <button type="button" class="cam-btn" onclick="document.getElementById('cameraInput').click()">📷 Buka Kamera</button>
+      <button type="button" class="galeri-btn" onclick="document.getElementById('imageInput').click()">🖼️ Pilih Galeri</button>
+    </div>
+    
+    <div id="cropContainer">
+      <div class="hint">Seret jari di gambar untuk menandai area</div>
+      <canvas id="cropCanvas"></canvas>
+      <div class="btn-group">
+        <button type="button" class="secondary" onclick="resetCrop()">Pilih Semua</button>
+        <button type="button" onclick="prosesScan(false)">Jadi Teks</button>
+        <button type="button" class="barcode-btn" onclick="prosesScan(true)">Jadi Barcode</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="status">Silakan ambil foto dari kamera atau pilih dari galeri.</div>
+
+  <label for="hasilTeks"><strong>Hasil Teks & Barcode:</strong></label>
+  
+  <div class="hasil-box">
+    <textarea id="hasilTeks" placeholder="Tulisan dari area yang dipotong akan muncul di sini..."></textarea>
+    <div id="barcodeArea">
+      <canvas id="barcodeCanvas"></canvas>
+    </div>
+  </div>
+  
+  <div class="btn-group">
+    <button type="button" class="success" onclick="salinTeks()">Salin Teks</button>
+    <button type="button" class="barcode-btn" onclick="buatBarcodeDariTeks()">Teks ke Barcode</button>
+    <button type="button" class="danger" onclick="hapusKotakHasil()">Reset</button>
+  </div>
+
+  <hr>
+
+  <button type="button" class="bt-btn" id="btnConnect" onclick="hubungkanBluetooth()">Hubungkan Printer BTP (Bluetooth)</button>
+  
+  <div class="btn-group">
+    <button type="button" class="print-btn" onclick="cetakGambarBluetooth()">Print Gambar</button>
+    <button type="button" class="print-btn" onclick="cetakTeksBluetooth()">Print Teks</button>
+  </div>
+</div>
+
+<a href="https://anteraja.id" target="_blank" rel="noopener noreferrer" class="btn-link-luar">
+  Buka Anteraja LifeMobile
+</a>
+
+<script src="script.js?v=10"></script>
+</body>
+</html>
