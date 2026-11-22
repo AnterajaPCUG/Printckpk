@@ -167,3 +167,10 @@ button.danger {
 button.danger:active {
   background-color: #b91c1c;
 }
+button.cam-btn {
+  background-color: #0284c7;
+}
+
+button.galeri-btn {
+  background-color: #475569;
+}
