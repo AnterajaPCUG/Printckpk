@@ -1,0 +1,227 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background-color: #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.toolbar {
+  background-color: #1f2937;
+  color: #ffffff;
+  padding: 10px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-right: 1px solid #374151;
+  padding-right: 8px;
+}
+
+.tool-group:last-child {
+  border-right: none;
+}
+
+.btn {
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-primary { background-color: #3b82f6; color: white; }
+.btn-secondary { background-color: #4b5563; color: white; }
+.btn-success { background-color: #10b981; color: white; }
+.btn-warning { background-color: #f59e0b; color: #111827; }
+.btn-info { background-color: #0ea5e9; color: white; }
+.btn-active { background-color: #2563eb; color: white; outline: 2px solid #93c5fd; }
+.btn-danger-active { background-color: #dc2626; color: white; outline: 2px solid #fca5a5; }
+.btn-info-active { background-color: #0284c7; color: white; outline: 2px solid #7dd3fc; }
+.btn-sign-active { background-color: #7c3aed; color: white; outline: 2px solid #c4b5fd; }
+
+.btn-format {
+  background-color: #374151;
+  color: #f3f4f6;
+  border: 1px solid #4b5563;
+  padding: 6px 9px;
+}
+
+.btn-format-active {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #93c5fd;
+}
+
+select, input[type="number"], input[type="text"] {
+  padding: 5px 6px;
+  border-radius: 4px;
+  border: 1px solid #4b5563;
+  background-color: #374151;
+  color: white;
+  font-size: 12px;
+}
+
+input[type="number"] { width: 52px; }
+.hex-input { width: 68px; font-family: monospace; text-transform: uppercase; }
+.rgb-input { width: 46px !important; text-align: center; }
+
+input[type="color"] { border: none; width: 26px; height: 26px; cursor: pointer; background: none; }
+
+.checkbox-label {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.status-bar {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 8px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid #fde68a;
+}
+
+.status-bar a {
+  color: #1d4ed8;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.workspace {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.pdf-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.page-wrapper {
+  position: relative;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.mode-box .page-wrapper,
+.mode-sign .page-wrapper {
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.mode-pick .page-wrapper {
+  cursor: cell;
+}
+
+.page-wrapper canvas.pdf-canvas {
+  display: block;
+}
+
+.sign-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.mode-sign .sign-canvas {
+  pointer-events: auto;
+}
+
+.text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  line-height: 1;
+}
+
+.mode-box .text-layer,
+.mode-pick .text-layer,
+.mode-sign .text-layer {
+  pointer-events: none;
+}
+
+.text-layer span {
+  position: absolute;
+  white-space: pre;
+  color: transparent;
+  cursor: pointer;
+}
+
+.mode-edit .text-layer span:hover {
+  background-color: rgba(59, 130, 246, 0.35);
+}
+
+.mode-delete .text-layer span:hover {
+  background-color: rgba(220, 38, 38, 0.45);
+  outline: 1px dashed #dc2626;
+}
+
+.selection-box {
+  position: absolute;
+  border: 2px dashed #dc2626;
+  background-color: rgba(220, 38, 38, 0.2);
+  z-index: 6;
+  pointer-events: none;
+}
+
+.floating-box-wrapper {
+  position: absolute;
+  display: flex;
+  align-items: stretch;
+  border: 2px dashed #2563eb;
+  background: rgba(255, 255, 255, 0.96);
+  z-index: 6;
+  min-width: 60px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.floating-input {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 2px 4px;
+  outline: none;
+}
+
+.resize-handle {
+  width: 24px;
+  background-color: #2563eb;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+}

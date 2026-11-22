@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor PDF Lengkap Offline</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="toolbar">
+    <div class="tool-group" style="position: relative; overflow: hidden;">
+      <button type="button" class="btn btn-primary">Buka PDF</button>
+      <input type="file" id="pdfUpload" accept="application/pdf,.pdf" style="position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%;">
+    </div>
+
+    <div class="tool-group">
+      <button type="button" id="modeEditBtn" class="btn btn-active">Edit / Ketik</button>
+      <button type="button" id="modeSignBtn" class="btn btn-secondary">Tanda Tangan</button>
+      <button type="button" id="modeDeleteBtn" class="btn btn-secondary">Hapus Teks</button>
+      <button type="button" id="modeBoxBtn" class="btn btn-secondary">Hapus Area (Gambar)</button>
+      <button type="button" id="undoBtn" class="btn btn-warning" disabled>Undo</button>
+    </div>
+
+    <!-- Pengaturan Ketebalan Garis TTD & Opacity -->
+    <div class="tool-group">
+      <label for="strokeWidthInput" style="font-size: 12px;">Garis TTD:</label>
+      <input type="range" id="strokeWidthInput" min="1" max="15" value="3" style="width: 65px; cursor: pointer;">
+      <span id="strokeWidthLabel" style="font-size: 12px; min-width: 26px;">3px</span>
+
+      <label for="opacityInput" style="font-size: 12px; margin-left: 4px;">Opacity:</label>
+      <input type="range" id="opacityInput" min="10" max="100" value="100" style="width: 65px; cursor: pointer;">
+      <span id="opacityLabel" style="font-size: 12px; min-width: 34px;">100%</span>
+    </div>
+
+    <div class="tool-group">
+      <select id="fontSelect">
+        <option value="Helvetica">Helvetica / Arial</option>
+        <option value="TimesRoman">Times New Roman</option>
+        <option value="Courier">Courier</option>
+        <option value="Custom" id="customFontOption" disabled>Font Kustom</option>
+      </select>
+
+      <div style="position: relative; overflow: hidden; display: inline-block;">
+        <button type="button" class="btn btn-secondary">Unggah Font</button>
+        <input type="file" id="fontUpload" accept=".ttf,.otf" style="position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%;">
+      </div>
+    </div>
+
+    <div class="tool-group">
+      <label for="fontSize" style="font-size: 12px;">Ukuran:</label>
+      <input type="number" id="fontSize" value="14" min="6" max="100">
+
+      <button type="button" id="boldBtn" class="btn btn-format" title="Tebal (Bold)"><b>B</b></button>
+      <button type="button" id="italicBtn" class="btn btn-format" title="Miring (Italic)"><i>I</i></button>
+      <button type="button" id="underlineBtn" class="btn btn-format" title="Garis Bawah (Underline)"><u>U</u></button>
+
+      <button type="button" id="alignLeftBtn" class="btn btn-format btn-format-active" title="Rata Kiri">Kiri</button>
+      <button type="button" id="alignCenterBtn" class="btn btn-format" title="Rata Tengah">Tengah</button>
+      <button type="button" id="alignRightBtn" class="btn btn-format" title="Rata Kanan">Kanan</button>
+      
+      <label for="fontColor" style="font-size: 12px;">Teks/TTD:</label>
+      <input type="color" id="fontColor" value="#000000" title="Warna Teks & Tinta Tanda Tangan">
+
+      <label class="checkbox-label">
+        <input type="checkbox" id="coverOldText" checked> Timpa lama
+      </label>
+    </div>
+
+    <div class="tool-group bg-picker-group">
+      <button type="button" id="modePickColorBtn" class="btn btn-info" title="Ketuk latar PDF untuk mengambil warnanya">Ambil Warna</button>
+      <input type="color" id="bgColor" value="#ffffff" title="Pratinjau Warna Latar">
+      
+      <label for="bgHexInput" style="font-size: 12px;">Hex:</label>
+      <input type="text" id="bgHexInput" value="#ffffff" maxlength="7" class="hex-input">
+
+      <label style="font-size: 12px;">RGB:</label>
+      <input type="number" id="bgRInput" value="255" min="0" max="255" class="rgb-input">
+      <input type="number" id="bgGInput" value="255" min="0" max="255" class="rgb-input">
+      <input type="number" id="bgBInput" value="255" min="0" max="255" class="rgb-input">
+    </div>
+
+    <div class="tool-group">
+      <button type="button" id="downloadBtn" class="btn btn-success" disabled>Unduh PDF</button>
+    </div>
+  </header>
+
+  <div class="status-bar" id="statusBar">
+    Menyiapkan sistem editor PDF...
+  </div>
+
+  <main class="workspace">
+    <div id="pdfContainer" class="pdf-container"></div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
