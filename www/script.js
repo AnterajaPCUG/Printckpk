@@ -139,7 +139,7 @@ async function hubungkanBluetooth() {
           optionalServices: LAYANAN_PRINTER_UUID
         });
 
-                await btPlugin.connect({ deviceId: device.deviceId });
+        await btPlugin.connect({ deviceId: device.deviceId });
         const hasilServices = await btPlugin.getServices({ deviceId: device.deviceId });
         const daftarLayanan = Array.isArray(hasilServices)
           ? hasilServices
@@ -152,23 +152,6 @@ async function hubungkanBluetooth() {
           const chars = Array.isArray(svc?.characteristics) ? svc.characteristics : [];
           for (const ch of chars) {
             const props = ch?.properties || {};
-            if (props.write || props.writeWithoutResponse) {
-              charDitemukan = {
-                service: svc.uuid,
-                characteristic: ch.uuid,
-                writeWithoutResponse: Boolean(props.writeWithoutResponse)
-              };
-              break;
-            }
-          }
-          if (charDitemukan) break;
-        }
-        
-        let charDitemukan = null;
-        for (const svc of services || []) {
-          const chars = svc.characteristics || [];
-          for (const ch of chars) {
-            const props = ch.properties || {};
             if (props.write || props.writeWithoutResponse) {
               charDitemukan = {
                 service: svc.uuid,
@@ -758,5 +741,4 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', perbaruiReferensiDOM);
 } else {
   perbaruiReferensiDOM();
-    }
-               
+}
