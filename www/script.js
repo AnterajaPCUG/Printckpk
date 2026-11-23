@@ -1,13 +1,13 @@
-const imageInput = document.getElementById('imageInput');
-const cameraInput = document.getElementById('cameraInput');
-const cropContainer = document.getElementById('cropContainer');
-const canvas = document.getElementById('cropCanvas');
-const ctx = canvas.getContext('2d');
-const statusText = document.getElementById('status');
-const hasilTeks = document.getElementById('hasilTeks');
-const btnConnect = document.getElementById('btnConnect');
-const barcodeArea = document.getElementById('barcodeArea');
-const barcodeCanvas = document.getElementById('barcodeCanvas');
+let imageInput = document.getElementById('imageInput');
+let cameraInput = document.getElementById('cameraInput');
+let cropContainer = document.getElementById('cropContainer');
+let canvas = document.getElementById('cropCanvas');
+let ctx = canvas ? canvas.getContext('2d') : null;
+let statusText = document.getElementById('status');
+let hasilTeks = document.getElementById('hasilTeks');
+let btnConnect = document.getElementById('btnConnect');
+let barcodeArea = document.getElementById('barcodeArea');
+let barcodeCanvas = document.getElementById('barcodeCanvas');
 
 let karakterPrint = null;
 let printerNativeTerhubung = false;
@@ -57,12 +57,51 @@ function uint8KeHex(dataArray) {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
+
+function perbaruiReferensiDOM() {
+  imageInput = document.getElementById('imageInput');
+  cameraInput = document.getElementById('cameraInput');
+  cropContainer = document.getElementById('cropContainer');
+  canvas = document.getElementById('cropCanvas');
+  ctx = canvas ? canvas.getContext('2d') : null;
+  statusText = document.getElementById('status');
+  hasilTeks = document.getElementById('hasilTeks');
+  btnConnect = document.getElementById('btnConnect');
+  barcodeArea = document.getElementById('barcodeArea');
+  barcodeCanvas = document.getElementById('barcodeCanvas');
+
+  if (imageInput && !imageInput.dataset.sudahPasang) {
+    imageInput.addEventListener('change', muatGambarDariInput);
+    imageInput.dataset.sudahPasang = '1';
+  }
+
+  if (cameraInput && !cameraInput.dataset.sudahPasang) {
+    cameraInput.addEventListener('change', muatGambarDariInput);
+    cameraInput.dataset.sudahPasang = '1';
+  }
+
+  if (canvas && !canvas.dataset.sudahPasang) {
+    canvas.addEventListener('mousedown', mulaiSentuh);
+    canvas.addEventListener('mousemove', geserSentuh);
+    window.addEventListener('mouseup', selesaiSentuh);
+    canvas.addEventListener('touchstart', mulaiSentuh, { passive: false });
+    canvas.addEventListener('touchmove', geserSentuh, { passive: false });
+    canvas.addEventListener('touchend', selesaiSentuh);
+    canvas.dataset.sudahPasang = '1';
+  }
+}
+
+// 1. Koneksi Bluetooth ke Printer BTP (APK Capacitor & Browser Chrome)
 async function hubungkanBluetooth() {
+  perbaruiReferensiDOM();
+
   if (isCapacitorNative()) {
     const btPlugin = getNativeBluetoothPlugin();
     if (!btPlugin) {
-      statusText.style.color = '#dc2626';
-      statusText.innerText = 'Plugin Bluetooth native belum terpasang.';
+      if (statusText) {
+        statusText.style.color = '#dc2626';
+        statusText.innerText = 'Plugin Bluetooth native belum terpasang.';
+      }
       alert(
         'Plugin Bluetooth native belum terdaftar di Capacitor. Pastikan @capacitor-community/bluetooth-le ada di package.json, build APK sukses, lalu instal APK terbaru.'
       );
@@ -70,8 +109,10 @@ async function hubungkanBluetooth() {
     }
 
     try {
-      statusText.style.color = '#0284c7';
-      statusText.innerText = 'Mencari printer Bluetooth (APK)...';
+      if (statusText) {
+        statusText.style.color = '#0284c7';
+        statusText.innerText = 'Mencari printer Bluetooth (APK)...';
+      }
 
       if (typeof btPlugin.initialize === 'function') {
         await btPlugin.initialize({ androidNeverForLocation: false });
@@ -114,10 +155,14 @@ async function hubungkanBluetooth() {
         namaPrinterNative = device.name || device.deviceId;
         printerNativeTerhubung = true;
 
-        btnConnect.innerText = 'Terhubung: ' + namaPrinterNative;
-        btnConnect.style.backgroundColor = '#16a34a';
-        statusText.style.color = '#16a34a';
-        statusText.innerText = 'Printer siap digunakan (APK)!';
+        if (btnConnect) {
+          btnConnect.innerText = 'Terhubung: ' + namaPrinterNative;
+          btnConnect.style.backgroundColor = '#16a34a';
+        }
+        if (statusText) {
+          statusText.style.color = '#16a34a';
+          statusText.innerText = 'Printer siap digunakan (APK)!';
+        }
         return;
       }
 
@@ -125,8 +170,10 @@ async function hubungkanBluetooth() {
       const devices = res?.devices || res || [];
 
       if (!Array.isArray(devices) || devices.length === 0) {
-        statusText.style.color = '#dc2626';
-        statusText.innerText = 'Tidak ada printer yang di-pair.';
+        if (statusText) {
+          statusText.style.color = '#dc2626';
+          statusText.innerText = 'Tidak ada printer yang di-pair.';
+        }
         alert('Pasangkan (pair) printer Bluetooth dulu di Pengaturan HP.');
         return;
       }
@@ -140,14 +187,20 @@ async function hubungkanBluetooth() {
       }
 
       printerNativeTerhubung = true;
-      btnConnect.innerText = 'Terhubung: ' + namaPrinterNative;
-      btnConnect.style.backgroundColor = '#16a34a';
-      statusText.style.color = '#16a34a';
-      statusText.innerText = 'Printer siap digunakan (APK)!';
+      if (btnConnect) {
+        btnConnect.innerText = 'Terhubung: ' + namaPrinterNative;
+        btnConnect.style.backgroundColor = '#16a34a';
+      }
+      if (statusText) {
+        statusText.style.color = '#16a34a';
+        statusText.innerText = 'Printer siap digunakan (APK)!';
+      }
     } catch (error) {
       printerNativeTerhubung = false;
-      statusText.style.color = '#dc2626';
-      statusText.innerText = 'Gagal terhubung: ' + error.message;
+      if (statusText) {
+        statusText.style.color = '#dc2626';
+        statusText.innerText = 'Gagal terhubung: ' + error.message;
+      }
     }
     return;
   }
@@ -158,15 +211,19 @@ async function hubungkanBluetooth() {
   }
 
   try {
-    statusText.style.color = '#0284c7';
-    statusText.innerText = 'Mencari printer Bluetooth...';
+    if (statusText) {
+      statusText.style.color = '#0284c7';
+      statusText.innerText = 'Mencari printer Bluetooth...';
+    }
 
     const device = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
       optionalServices: LAYANAN_PRINTER_UUID
     });
 
-    statusText.innerText = 'Menyambungkan ke ' + (device.name || 'Printer') + '...';
+    if (statusText) {
+      statusText.innerText = 'Menyambungkan ke ' + (device.name || 'Printer') + '...';
+    }
     const server = await device.gatt.connect();
     const services = await server.getPrimaryServices();
 
@@ -182,18 +239,25 @@ async function hubungkanBluetooth() {
     }
 
     if (karakterPrint) {
-      btnConnect.innerText = 'Terhubung: ' + (device.name || 'Printer BTP');
-      btnConnect.style.backgroundColor = '#16a34a';
-      statusText.style.color = '#16a34a';
-      statusText.innerText = 'Printer siap digunakan!';
+      if (btnConnect) {
+        btnConnect.innerText = 'Terhubung: ' + (device.name || 'Printer BTP');
+        btnConnect.style.backgroundColor = '#16a34a';
+      }
+      if (statusText) {
+        statusText.style.color = '#16a34a';
+        statusText.innerText = 'Printer siap digunakan!';
+      }
     } else {
       throw new Error('Karakteristik cetak tidak ditemukan.');
     }
   } catch (error) {
-    statusText.style.color = '#dc2626';
-    statusText.innerText = 'Gagal terhubung: ' + error.message;
+    if (statusText) {
+      statusText.style.color = '#dc2626';
+      statusText.innerText = 'Gagal terhubung: ' + error.message;
+    }
   }
 }
+
 async function kirimKePrinter(dataArray) {
   if (isCapacitorNative()) {
     const btPlugin = getNativeBluetoothPlugin();
@@ -239,4 +303,461 @@ async function kirimKePrinter(dataArray) {
     }
     await new Promise((resolve) => setTimeout(resolve, 15));
   }
+}
+// 2. Cetak Potongan Gambar Crop ke BTP 80mm
+async function cetakGambarBluetooth() {
+  perbaruiReferensiDOM();
+  if (!gambarAsli.src) {
+    alert('Pilih atau foto gambar terlebih dahulu!');
+    return;
+  }
+  if (!printerSudahSiap()) {
+    await hubungkanBluetooth();
+    if (!printerSudahSiap()) return;
+  }
+
+  if (statusText) {
+    statusText.style.color = '#0284c7';
+    statusText.innerText = 'Mencetak gambar ke BTP 80mm...';
+  }
+
+  try {
+    const lebarCetak = 576;
+    const potongCanvas = buatCanvasPotongan(lebarCetak);
+    const tinggiCetak = potongCanvas.height;
+    const pCtx = potongCanvas.getContext('2d');
+    const imgData = pCtx.getImageData(0, 0, lebarCetak, tinggiCetak).data;
+
+    const bytesPerBaris = lebarCetak / 8;
+    const totalBytesGambar = bytesPerBaris * tinggiCetak;
+
+    const header = new Uint8Array([
+      0x1B, 0x40,
+      0x1D, 0x76, 0x30, 0x00,
+      bytesPerBaris & 0xFF, (bytesPerBaris >> 8) & 0xFF,
+      tinggiCetak & 0xFF, (tinggiCetak >> 8) & 0xFF
+    ]);
+
+    const rasterData = new Uint8Array(totalBytesGambar);
+    let indeksByte = 0;
+
+    for (let y = 0; y < tinggiCetak; y++) {
+      for (let xByte = 0; xByte < bytesPerBaris; xByte++) {
+        let byteSekarang = 0;
+        for (let bit = 0; bit < 8; bit++) {
+          const x = xByte * 8 + bit;
+          const posPixel = (y * lebarCetak + x) * 4;
+          const r = imgData.at(posPixel);
+          const g = imgData.at(posPixel + 1);
+          const b = imgData.at(posPixel + 2);
+          const kecerahan = (r + g + b) / 3;
+
+          if (kecerahan < 185) {
+            byteSekarang |= (1 << (7 - bit));
+          }
+        }
+        rasterData[indeksByte++] = byteSekarang;
       }
+    }
+
+    const footer = new Uint8Array([0x0A, 0x0A, 0x0A, 0x1D, 0x56, 0x41, 0x10]);
+    const paketLengkap = new Uint8Array(header.length + rasterData.length + footer.length);
+    paketLengkap.set(header, 0);
+    paketLengkap.set(rasterData, header.length);
+    paketLengkap.set(footer, header.length + rasterData.length);
+
+    await kirimKePrinter(paketLengkap);
+    if (statusText) {
+      statusText.style.color = '#16a34a';
+      statusText.innerText = 'Gambar berhasil dicetak ke BTP 80mm!';
+    }
+  } catch (err) {
+    if (statusText) {
+      statusText.style.color = '#dc2626';
+      statusText.innerText = 'Gagal mencetak: ' + err.message;
+    }
+  }
+}
+
+// 3. Cetak Teks + Barcode Jadi Satu Resi ke BTP-P33
+async function cetakTeksBluetooth() {
+  perbaruiReferensiDOM();
+  const isiTeks = hasilTeks ? hasilTeks.value.trim() : '';
+  const adaBarcode = barcodeArea && barcodeArea.style.display === 'block' && nilaiBarcodeTerakhir !== '';
+
+  if (!isiTeks && !adaBarcode) {
+    alert('Kotak masih kosong. Belum ada teks atau barcode untuk dicetak.');
+    return;
+  }
+
+  if (!printerSudahSiap()) {
+    await hubungkanBluetooth();
+    if (!printerSudahSiap()) return;
+  }
+
+  if (statusText) {
+    statusText.style.color = '#0284c7';
+    statusText.innerText = 'Mencetak Teks & Barcode ke BTP 80mm...';
+  }
+
+  try {
+    const encoder = new TextEncoder();
+    let kumpulanPerintah = Array.of(0x1B, 0x40);
+
+    if (isiTeks) {
+      kumpulanPerintah.push(0x1B, 0x61, 0x00);
+      const teksBytes = encoder.encode(isiTeks + '\n\n');
+      for (const b of teksBytes) {
+        kumpulanPerintah.push(b);
+      }
+    }
+
+    if (adaBarcode) {
+      const teksBarcode = nilaiBarcodeTerakhir.replace(/[^\x20-\x7E]/g, '');
+      const dataBarcode = '{B' + teksBarcode;
+      const bytesBarcode = encoder.encode(dataBarcode);
+
+      kumpulanPerintah.push(
+        0x1B, 0x61, 0x01,
+        0x1D, 0x48, 0x02,
+        0x1D, 0x66, 0x00,
+        0x1D, 0x68, 0x50,
+        0x1D, 0x77, 0x02,
+        0x1D, 0x6B, 0x49, bytesBarcode.length
+      );
+
+      for (const b of bytesBarcode) {
+        kumpulanPerintah.push(b);
+      }
+    }
+
+    kumpulanPerintah.push(0x0A, 0x0A, 0x0A, 0x0A, 0x1D, 0x56, 0x41, 0x10);
+    await kirimKePrinter(new Uint8Array(kumpulanPerintah));
+
+    if (statusText) {
+      statusText.style.color = '#16a34a';
+      statusText.innerText = 'Teks & Barcode (' + nilaiBarcodeTerakhir + ') berhasil dicetak!';
+    }
+  } catch (err) {
+    if (statusText) {
+      statusText.style.color = '#dc2626';
+      statusText.innerText = 'Gagal mencetak: ' + err.message;
+    }
+  }
+}
+
+// 4. Ubah Hasil Crop / Teks Menjadi Barcode Code 128
+function buatBarcodeDariTeks(teksKhusus = null) {
+  perbaruiReferensiDOM();
+  const sumberTeks = (typeof teksKhusus === 'string') ? teksKhusus : (hasilTeks ? hasilTeks.value : '');
+  const isiTeks = sumberTeks.trim().replace(/\s+/g, ' ');
+
+  if (!isiTeks) {
+    alert('Teks kosong! Scan area foto atau ketik nomor resi terlebih dahulu.');
+    return;
+  }
+
+  nilaiBarcodeTerakhir = isiTeks;
+
+  const polaCode128 = [
+    "212222","222122","222221","121223","121322","131222","122213","122312","132212","221213",
+    "221312","231212","112232","122132","122231","113222","123122","123221","223211","221132",
+    "221231","213212","223112","312131","311222","321122","321221","312212","322112","322211",
+    "212123","212321","232121","111323","131123","131321","112313","132113","132311","211313",
+    "231113","231311","112133","112331","132131","113123","113321","133121","313121","211331",
+    "231131","213113","213311","213131","311123","311321","331121","312113","312311","332111",
+    "314111","221411","431111","111224","111422","121124","121421","141122","141221","112214",
+    "112412","122114","122411","142112","142211","241211","221114","413111","241112","134111",
+    "111242","121142","121241","114212","124112","124211","411212","421112","421211","212141",
+    "214121","412121","111143","111341","131141","114113","114311","411113","411311","113141",
+    "114131","311141","411131","211412","211214","211232","2331112"
+  ];
+
+  let daftarKode = Array.of(104);
+  let checksum = 104;
+
+  for (let i = 0; i < isiTeks.length; i++) {
+    let kodeAscii = isiTeks.charCodeAt(i) - 32;
+    if (kodeAscii < 0 || kodeAscii > 94) kodeAscii = 0;
+    daftarKode.push(kodeAscii);
+    checksum += kodeAscii * (i + 1);
+  }
+
+  daftarKode.push(checksum % 103);
+  daftarKode.push(106);
+
+  let rangkaianBar = "";
+  for (const idx of daftarKode) {
+    rangkaianBar += polaCode128.at(idx);
+  }
+
+  const lebarModul = 2;
+  const totalModul = rangkaianBar.split('').reduce((a, b) => a + Number(b), 0);
+  const marginSamping = 20;
+  const tinggiBar = 70;
+  const tinggiTeks = 24;
+
+  if (!barcodeCanvas) return;
+  barcodeCanvas.width = (totalModul * lebarModul) + (marginSamping * 2);
+  barcodeCanvas.height = tinggiBar + tinggiTeks + 16;
+
+  const bCtx = barcodeCanvas.getContext('2d');
+  bCtx.fillStyle = '#ffffff';
+  bCtx.fillRect(0, 0, barcodeCanvas.width, barcodeCanvas.height);
+
+  let posisiX = marginSamping;
+  for (let i = 0; i < rangkaianBar.length; i++) {
+    const lebarBatang = Number(rangkaianBar.at(i)) * lebarModul;
+    if (i % 2 === 0) {
+      bCtx.fillStyle = '#000000';
+      bCtx.fillRect(posisiX, 8, lebarBatang, tinggiBar);
+    }
+    posisiX += lebarBatang;
+  }
+
+  bCtx.fillStyle = '#000000';
+  bCtx.font = 'bold 14px monospace';
+  bCtx.textAlign = 'center';
+  bCtx.fillText(isiTeks, barcodeCanvas.width / 2, tinggiBar + 26);
+
+  if (barcodeArea) {
+    barcodeArea.style.display = 'block';
+  }
+  if (statusText) {
+    statusText.style.color = '#7c3aed';
+    statusText.innerText = 'Barcode (' + isiTeks + ') tersimpan! Sekarang kamu bisa crop teks alamat.';
+  }
+}
+// 5. Muat Gambar dari Kamera maupun Galeri
+function muatGambarDariInput(event) {
+  perbaruiReferensiDOM();
+  const daftarFile = event?.target?.files;
+  const file = daftarFile && daftarFile.length > 0 ? daftarFile[0] : null;
+
+  if (!file) {
+    if (statusText) {
+      statusText.style.color = '#dc2626';
+      statusText.innerText = 'Tidak ada foto yang dipilih atau akses file dibatalkan.';
+    }
+    return;
+  }
+
+  if (statusText) {
+    statusText.style.color = '#0284c7';
+    statusText.innerText = 'Memuat foto ke layar...';
+  }
+
+  const urlFoto = URL.createObjectURL(file);
+  const imgBaru = new Image();
+
+  imgBaru.onload = function () {
+    gambarAsli = imgBaru;
+    if (!canvas) {
+      URL.revokeObjectURL(urlFoto);
+      return;
+    }
+
+    const lebarMaks = 420;
+    skalaGambar = gambarAsli.width > lebarMaks ? lebarMaks / gambarAsli.width : 1;
+    canvas.width = Math.max(1, Math.round(gambarAsli.width * skalaGambar));
+    canvas.height = Math.max(1, Math.round(gambarAsli.height * skalaGambar));
+
+    resetCrop();
+    if (cropContainer) {
+      cropContainer.style.display = 'block';
+    }
+    if (statusText) {
+      statusText.style.color = '#0284c7';
+      statusText.innerText = 'Gambar siap! Seret kotak biru lalu pilih "Jadi Barcode" atau "Jadi Teks".';
+    }
+    URL.revokeObjectURL(urlFoto);
+  };
+
+  imgBaru.onerror = function () {
+    URL.revokeObjectURL(urlFoto);
+    if (statusText) {
+      statusText.style.color = '#dc2626';
+      statusText.innerText = 'Gagal menampilkan foto. Cek izin kamera/galeri atau coba pilih foto lain.';
+    }
+  };
+
+  imgBaru.src = urlFoto;
+  if (event?.target) {
+    event.target.value = '';
+  }
+}
+
+function gambarUlangCanvas() {
+  if (!canvas || !ctx || !gambarAsli.src) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(gambarAsli, 0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+  ctx.fillRect(0, 0, canvas.width, areaCrop.y);
+  ctx.fillRect(0, areaCrop.y + areaCrop.h, canvas.width, canvas.height - (areaCrop.y + areaCrop.h));
+  ctx.fillRect(0, areaCrop.y, areaCrop.x, areaCrop.h);
+  ctx.fillRect(areaCrop.x + areaCrop.w, areaCrop.y, canvas.width - (areaCrop.x + areaCrop.w), areaCrop.h);
+
+  ctx.strokeStyle = '#3b82f6';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(areaCrop.x, areaCrop.y, areaCrop.w, areaCrop.h);
+}
+
+function resetCrop() {
+  if (!canvas) return;
+  areaCrop = { x: 0, y: 0, w: canvas.width, h: canvas.height };
+  gambarUlangCanvas();
+}
+
+function ambilPosisi(e) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches.item(0).clientX : e.clientX;
+  const clientY = e.touches ? e.touches.item(0).clientY : e.clientY;
+  return {
+    x: Math.max(0, Math.min(canvas.width, (clientX - rect.left) * (canvas.width / rect.width))),
+    y: Math.max(0, Math.min(canvas.height, (clientY - rect.top) * (canvas.height / rect.height)))
+  };
+}
+
+function mulaiSentuh(e) {
+  sedangMenyeret = true;
+  titikAwal = ambilPosisi(e);
+  areaCrop = { x: titikAwal.x, y: titikAwal.y, w: 0, h: 0 };
+}
+
+function geserSentuh(e) {
+  if (!sedangMenyeret) return;
+  e.preventDefault();
+  const posSekarang = ambilPosisi(e);
+  areaCrop.x = Math.min(titikAwal.x, posSekarang.x);
+  areaCrop.y = Math.min(titikAwal.y, posSekarang.y);
+  areaCrop.w = Math.abs(posSekarang.x - titikAwal.x);
+  areaCrop.h = Math.abs(posSekarang.y - titikAwal.y);
+  gambarUlangCanvas();
+}
+
+function selesaiSentuh() {
+  if (!sedangMenyeret) return;
+  sedangMenyeret = false;
+  if (areaCrop.w < 25 || areaCrop.h < 25) resetCrop();
+}
+
+function buatCanvasPotongan(lebarTarget) {
+  const potongCanvas = document.createElement('canvas');
+  let asliX = areaCrop.x / skalaGambar;
+  let asliY = areaCrop.y / skalaGambar;
+  let asliW = areaCrop.w / skalaGambar;
+  let asliH = areaCrop.h / skalaGambar;
+
+  const rasio = lebarTarget / asliW;
+  potongCanvas.width = lebarTarget;
+  potongCanvas.height = Math.max(10, Math.round(asliH * rasio));
+
+  const pCtx = potongCanvas.getContext('2d');
+  pCtx.fillStyle = '#ffffff';
+  pCtx.fillRect(0, 0, potongCanvas.width, potongCanvas.height);
+  pCtx.filter = 'grayscale(100%) contrast(150%)';
+  pCtx.drawImage(gambarAsli, asliX, asliY, asliW, asliH, 0, 0, potongCanvas.width, potongCanvas.height);
+
+  return potongCanvas;
+}
+
+// 6. Scan Area Crop (Jadi Barcode atau Tambah Teks)
+async function prosesScan(otomatisBarcode = false) {
+  perbaruiReferensiDOM();
+  if (!gambarAsli.src) {
+    alert('Pilih atau foto gambar terlebih dahulu!');
+    return;
+  }
+
+  if (statusText) {
+    statusText.style.color = '#0284c7';
+    statusText.innerText = 'Membaca area terpilih...';
+  }
+
+  try {
+    const hasilPotong = buatCanvasPotongan(1200);
+    const filePotongan = await new Promise((resolve) => {
+      hasilPotong.toBlob((blob) => {
+        resolve(new File([blob], 'crop.jpg', { type: 'image/jpeg' }));
+      }, 'image/jpeg', 0.9);
+    });
+
+    const formData = new FormData();
+    formData.append('file', filePotongan);
+    formData.append('apikey', 'K8166195928459888957');
+    formData.append('language', 'auto');
+    formData.append('OCREngine', '2');
+
+    const endpointAPI = 'https://' + 'api.ocr.space/parse/image';
+    const response = await fetch(endpointAPI, {
+      method: 'POST',
+      body: formData
+    });
+
+    const teksMentah = await response.text();
+    if (!teksMentah) {
+      throw new Error('Server sibuk. Coba beberapa saat lagi.');
+    }
+
+    const result = JSON.parse(teksMentah);
+    if (Array.isArray(result.ParsedResults) && result.ParsedResults.length > 0) {
+      const hasilPertama = result.ParsedResults.shift();
+      const teksBaru = (hasilPertama.ParsedText || '').trim();
+
+      if (otomatisBarcode) {
+        buatBarcodeDariTeks(teksBaru);
+      } else if (hasilTeks) {
+        if (hasilTeks.value.trim() !== '') {
+          hasilTeks.value = hasilTeks.value.trim() + '\n' + teksBaru;
+        } else {
+          hasilTeks.value = teksBaru;
+        }
+        if (statusText) {
+          statusText.style.color = '#16a34a';
+          statusText.innerText = 'Teks ditambahkan! Barcode (' + nilaiBarcodeTerakhir + ') tetap aman.';
+        }
+      }
+    } else if (statusText) {
+      statusText.style.color = '#dc2626';
+      statusText.innerText = 'Gagal membaca: ' + (result.ErrorMessage || 'Teks tidak terdeteksi.');
+    }
+  } catch (error) {
+    if (statusText) {
+      statusText.style.color = '#dc2626';
+      statusText.innerText = 'Error: ' + error.message;
+    }
+  }
+}
+
+function salinTeks() {
+  perbaruiReferensiDOM();
+  if (!hasilTeks || !hasilTeks.value) return;
+  hasilTeks.select();
+  navigator.clipboard.writeText(hasilTeks.value);
+  alert('Teks berhasil disalin!');
+}
+
+function hapusKotakHasil() {
+  perbaruiReferensiDOM();
+  if (hasilTeks) hasilTeks.value = '';
+  nilaiBarcodeTerakhir = '';
+  if (barcodeArea) barcodeArea.style.display = 'none';
+
+  if (barcodeCanvas) {
+    const bCtx = barcodeCanvas.getContext('2d');
+    bCtx.clearRect(0, 0, barcodeCanvas.width, barcodeCanvas.height);
+  }
+
+  if (statusText) {
+    statusText.style.color = '#64748b';
+    statusText.innerText = 'Kotak teks & barcode telah dibersihkan.';
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', perbaruiReferensiDOM);
+} else {
+  perbaruiReferensiDOM();
+    }
+  
