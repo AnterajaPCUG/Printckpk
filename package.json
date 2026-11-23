@@ -1,22 +1,24 @@
+
 {
-  "name": "printckpk",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
+  "nama": "printckpk",
+  "versi": "1.0.0",
+  "deskripsi": "",
+  "utama": "index.js",
+  "skrip": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
+  "repositori": {
+    "tipe": "git",
     "url": "git+https://github.com/anterajapcug/Printckpk.git"
   },
-  "keywords": [],
-  "type": "commonjs",
-  "bugs": {
+  "kata kunci": [],
+  "tipe": "commonjs",
+  "bug": {
     "url": "https://github.com/anterajapcug/Printckpk/issues"
   },
-  "homepage": "https://github.com/anterajapcug/Printckpk#readme",
-  "dependencies": {
+  "beranda": "https://github.com/anterajapcug/Printckpk#readme",
+  "ketergantungan": {
+    "@capacitor-community/bluetooth-le": "^8.0.0",
     "@capacitor/android": "^8.6.2",
     "@capacitor/cli": "^8.6.2",
     "@capacitor/core": "^8.6.2"
