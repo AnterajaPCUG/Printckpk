@@ -11,6 +11,7 @@ let barcodeCanvas = document.getElementById('barcodeCanvas');
 
 let karakterPrint = null;
 let printerNativeTerhubung = false;
+let modeKoneksiNative = null; // 'spp' atau 'ble'
 let perangkatBleTerhubung = null;
 let layananBleAktif = null;
 let karakteristikBleAktif = null;
@@ -37,15 +38,20 @@ const isCapacitorNative = () => {
   );
 };
 
-function getNativeBluetoothPlugin() {
+function getSppBluetoothPlugin() {
   const plugins = window.Capacitor?.Plugins || {};
   return (
-    plugins.BluetoothLe ||
+    plugins.BluetoothCommunication ||
+    plugins.BluetoothSerial ||
     plugins.BluetoothPrinter ||
     plugins.ThermalPrinter ||
-    plugins.BluetoothSerial ||
     null
   );
+}
+
+function getBleBluetoothPlugin() {
+  const plugins = window.Capacitor?.Plugins || {};
+  return plugins.BluetoothLe || null;
 }
 
 function printerSudahSiap() {
@@ -112,35 +118,90 @@ function perbaruiReferensiDOM() {
   }
 }
 
-// 1. Koneksi Bluetooth ke Printer BTP (APK Capacitor & Browser Chrome)
+async function sambungkanViaSpp(sppPlugin) {
+  if (typeof sppPlugin.initialize === 'function') {
+    await sppPlugin.initialize();
+  }
+  if (typeof sppPlugin.enable === 'function') {
+    try {
+      await sppPlugin.enable();
+    } catch (_) {}
+  }
+
+  let daftarPerangkat = [];
+  if (typeof sppPlugin.getPairedDevices === 'function') {
+    const res = await sppPlugin.getPairedDevices();
+    daftarPerangkat = res?.devices || res || [];
+  } else if (typeof sppPlugin.list === 'function') {
+    const res = await sppPlugin.list();
+    daftarPerangkat = res?.devices || res || [];
+  } else if (typeof sppPlugin.scanDevices === 'function') {
+    const res = await sppPlugin.scanDevices();
+    daftarPerangkat = res?.devices || res || [];
+  }
+
+  if (!Array.isArray(daftarPerangkat) || daftarPerangkat.length === 0) {
+    throw new Error('Tidak ada perangkat Bluetooth yang ter-pair. Pair SNBC dulu di Pengaturan HP.');
+  }
+
+  const targetSnbc =
+    daftarPerangkat.find((d) =>
+      String(d?.name || '').toUpperCase().includes('SNBC') ||
+      String(d?.name || '').toUpperCase().includes('BTP')
+    ) || daftarPerangkat[0];
+
+  const alamat = targetSnbc.address || targetSnbc.id || targetSnbc.macAddress;
+  if (!alamat) {
+    throw new Error('Alamat MAC printer SNBC tidak ditemukan.');
+  }
+
+  if (typeof sppPlugin.connect === 'function') {
+    await sppPlugin.connect({ address: alamat });
+  } else if (typeof sppPlugin.connectDevice === 'function') {
+    await sppPlugin.connectDevice({ address: alamat });
+  } else {
+    throw new Error('Metode connect pada plugin SPP tidak tersedia.');
+  }
+
+  modeKoneksiNative = 'spp';
+  alamatPrinterNative = alamat;
+  namaPrinterNative = targetSnbc.name || alamat;
+  printerNativeTerhubung = true;
+}
+
+// 1. Koneksi Bluetooth ke Printer SNBC BTP (APK Capacitor & Browser Chrome)
 async function hubungkanBluetooth() {
   perbaruiReferensiDOM();
 
   if (isCapacitorNative()) {
-    const btPlugin = getNativeBluetoothPlugin();
-    if (!btPlugin) {
+    const sppPlugin = getSppBluetoothPlugin();
+    const blePlugin = getBleBluetoothPlugin();
+
+    if (!sppPlugin && !blePlugin) {
       setStatus('Plugin Bluetooth native belum terpasang.', '#dc2626');
       alert(
-        'Plugin Bluetooth native belum terdaftar di Capacitor. Pastikan @capacitor-community/bluetooth-le ada di package.json, build APK sukses, lalu instal APK terbaru.'
+        'Plugin Bluetooth native belum terdaftar di Capacitor. Tambahkan plugin SPP/Bluetooth di package.json, jalankan npx cap sync android, lalu instal APK terbaru.'
       );
       return;
     }
 
     try {
-      setStatus('Mencari printer Bluetooth (APK)...', '#0284c7');
+      setStatus('Menghubungkan ke printer SNBC BTP...', '#0284c7');
 
-      if (typeof btPlugin.initialize === 'function') {
-        await btPlugin.initialize({ androidNeverForLocation: false });
-      }
+      if (sppPlugin) {
+        await sambungkanViaSpp(sppPlugin);
+      } else if (blePlugin) {
+        if (typeof blePlugin.initialize === 'function') {
+          await blePlugin.initialize({ androidNeverForLocation: false });
+        }
 
-      if (typeof btPlugin.requestDevice === 'function') {
-        const device = await btPlugin.requestDevice({
+        const device = await blePlugin.requestDevice({
           allowDuplicates: false,
           optionalServices: LAYANAN_PRINTER_UUID
         });
 
-        await btPlugin.connect({ deviceId: device.deviceId });
-        const hasilServices = await btPlugin.getServices({ deviceId: device.deviceId });
+        await blePlugin.connect({ deviceId: device.deviceId });
+        const hasilServices = await blePlugin.getServices({ deviceId: device.deviceId });
         const daftarLayanan = Array.isArray(hasilServices)
           ? hasilServices
           : Array.isArray(hasilServices?.services)
@@ -168,46 +229,23 @@ async function hubungkanBluetooth() {
           throw new Error('Karakteristik tulis BLE pada printer tidak ditemukan.');
         }
 
+        modeKoneksiNative = 'ble';
         perangkatBleTerhubung = device.deviceId;
         layananBleAktif = charDitemukan.service;
         karakteristikBleAktif = charDitemukan;
         alamatPrinterNative = device.deviceId;
         namaPrinterNative = device.name || device.deviceId;
         printerNativeTerhubung = true;
-
-        if (btnConnect) {
-          btnConnect.innerText = 'Terhubung: ' + namaPrinterNative;
-          btnConnect.style.backgroundColor = '#16a34a';
-        }
-        setStatus('Printer siap digunakan (APK)!', '#16a34a');
-        return;
       }
 
-      const res = await (btPlugin.getDevices ? btPlugin.getDevices() : btPlugin.list());
-      const devices = res?.devices || res || [];
-
-      if (!Array.isArray(devices) || devices.length === 0) {
-        setStatus('Tidak ada printer yang di-pair.', '#dc2626');
-        alert('Pasangkan (pair) printer Bluetooth dulu di Pengaturan HP.');
-        return;
-      }
-
-      const target = devices[0];
-      alamatPrinterNative = target.address || target.id || target.macAddress;
-      namaPrinterNative = target.name || alamatPrinterNative;
-
-      if (btPlugin.connect) {
-        await btPlugin.connect({ address: alamatPrinterNative });
-      }
-
-      printerNativeTerhubung = true;
       if (btnConnect) {
         btnConnect.innerText = 'Terhubung: ' + namaPrinterNative;
         btnConnect.style.backgroundColor = '#16a34a';
       }
-      setStatus('Printer siap digunakan (APK)!', '#16a34a');
+      setStatus('Printer SNBC siap digunakan (APK)!', '#16a34a');
     } catch (error) {
       printerNativeTerhubung = false;
+      modeKoneksiNative = null;
       setStatus('Gagal terhubung: ' + error.message, '#dc2626');
     }
     return;
@@ -257,16 +295,44 @@ async function hubungkanBluetooth() {
 
 async function kirimKePrinter(dataArray) {
   if (isCapacitorNative()) {
-    const btPlugin = getNativeBluetoothPlugin();
-    if (!btPlugin || !printerNativeTerhubung) {
+    if (!printerNativeTerhubung) {
       throw new Error('Printer native APK belum terhubung.');
     }
 
     const ukuranPaket = 60;
-    if (perangkatBleTerhubung && karakteristikBleAktif && typeof btPlugin.write === 'function') {
+
+    if (modeKoneksiNative === 'spp') {
+      const sppPlugin = getSppBluetoothPlugin();
+      if (!sppPlugin) {
+        throw new Error('Plugin SPP Bluetooth tidak ditemukan.');
+      }
+
+      if (typeof sppPlugin.writeBytes === 'function') {
+        await sppPlugin.writeBytes({ address: alamatPrinterNative, bytes: Array.from(dataArray) });
+        return;
+      }
+
+      if (typeof sppPlugin.write === 'function') {
+        for (let i = 0; i < dataArray.length; i += ukuranPaket) {
+          const potongan = dataArray.slice(i, i + ukuranPaket);
+          await sppPlugin.write({
+            address: alamatPrinterNative,
+            data: Array.from(potongan),
+            value: uint8KeHex(potongan)
+          });
+          await new Promise((resolve) => setTimeout(resolve, 15));
+        }
+        return;
+      }
+
+      throw new Error('Metode kirim data pada plugin SPP belum tersedia.');
+    }
+
+    const blePlugin = getBleBluetoothPlugin();
+    if (blePlugin && perangkatBleTerhubung && karakteristikBleAktif && typeof blePlugin.write === 'function') {
       for (let i = 0; i < dataArray.length; i += ukuranPaket) {
         const potongan = dataArray.slice(i, i + ukuranPaket);
-        await btPlugin.write({
+        await blePlugin.write({
           deviceId: perangkatBleTerhubung,
           service: layananBleAktif,
           characteristic: karakteristikBleAktif.characteristic,
@@ -277,16 +343,7 @@ async function kirimKePrinter(dataArray) {
       return;
     }
 
-    const bytesArray = Array.from(dataArray);
-    if (btPlugin.writeBytes) {
-      await btPlugin.writeBytes({ address: alamatPrinterNative, bytes: bytesArray });
-    } else if (btPlugin.write) {
-      const decoder = new TextDecoder();
-      await btPlugin.write({ address: alamatPrinterNative, value: decoder.decode(dataArray) });
-    } else {
-      throw new Error('Metode tulis data pada plugin Bluetooth native belum sesuai.');
-    }
-    return;
+    throw new Error('Jalur pengiriman Bluetooth native belum siap.');
   }
 
   if (!karakterPrint) return;
@@ -300,8 +357,8 @@ async function kirimKePrinter(dataArray) {
     }
     await new Promise((resolve) => setTimeout(resolve, 15));
   }
-}
-// 2. Cetak Potongan Gambar Crop ke BTP 80mm
+    }
+        // 2. Cetak Potongan Gambar Crop ke BTP 80mm
 async function cetakGambarBluetooth() {
   perbaruiReferensiDOM();
   if (!gambarAsli || !gambarAsli.src) {
@@ -504,8 +561,8 @@ function buatBarcodeDariTeks(teksKhusus = null) {
     barcodeArea.style.display = 'block';
   }
   setStatus('Barcode (' + isiTeks + ') tersimpan! Sekarang kamu bisa crop teks alamat.', '#7c3aed');
-    }
-// 5. Muat Gambar dari Kamera maupun Galeri
+  }
+      // 5. Muat Gambar dari Kamera maupun Galeri
 function muatGambarDariInput(event) {
   perbaruiReferensiDOM();
   const daftarFile = event?.target?.files;
@@ -741,4 +798,4 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', perbaruiReferensiDOM);
 } else {
   perbaruiReferensiDOM();
-}
+    }
