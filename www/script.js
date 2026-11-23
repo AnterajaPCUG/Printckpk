@@ -10,6 +10,9 @@ const barcodeArea = document.getElementById('barcodeArea');
 const barcodeCanvas = document.getElementById('barcodeCanvas');
 
 let karakterPrint = null;
+let printerNativeTerhubung = false;
+let alamatPrinterNative = null;
+let namaPrinterNative = null;
 let nilaiBarcodeTerakhir = '';
 let gambarAsli = new Image();
 let skalaGambar = 1;
@@ -17,8 +20,76 @@ let sedangMenyeret = false;
 let titikAwal = { x: 0, y: 0 };
 let areaCrop = { x: 0, y: 0, w: 0, h: 0 };
 
-// 1. Koneksi Bluetooth ke Printer BTP
+const isCapacitorNative = () => {
+  return Boolean(
+    window.Capacitor &&
+      typeof window.Capacitor.isNativePlatform === 'function' &&
+      window.Capacitor.isNativePlatform()
+  );
+};
+
+function getNativeBluetoothPlugin() {
+  const plugins = window.Capacitor?.Plugins || {};
+  return (
+    plugins.BluetoothPrinter ||
+    plugins.ThermalPrinter ||
+    plugins.BluetoothSerial ||
+    null
+  );
+}
+
+function printerSudahSiap() {
+  return isCapacitorNative() ? Boolean(printerNativeTerhubung) : Boolean(karakterPrint);
+}
+
+// 1. Koneksi Bluetooth ke Printer BTP (APK Capacitor & Browser Chrome)
 async function hubungkanBluetooth() {
+  if (isCapacitorNative()) {
+    const btPlugin = getNativeBluetoothPlugin();
+    if (!btPlugin) {
+      statusText.style.color = '#dc2626';
+      statusText.innerText = 'Plugin Bluetooth native belum terpasang.';
+      alert(
+        'Plugin Bluetooth native belum terdaftar di Capacitor. Pasang plugin Bluetooth yang sesuai di package.json lalu jalankan npx cap sync android.'
+      );
+      return;
+    }
+
+    try {
+      statusText.style.color = '#0284c7';
+      statusText.innerText = 'Mencari printer Bluetooth (APK)...';
+
+      const res = await (btPlugin.getDevices ? btPlugin.getDevices() : btPlugin.list());
+      const devices = res?.devices || res || [];
+
+      if (!Array.isArray(devices) || devices.length === 0) {
+        statusText.style.color = '#dc2626';
+        statusText.innerText = 'Tidak ada printer yang di-pair.';
+        alert('Pasangkan (pair) printer Bluetooth dulu di Pengaturan HP.');
+        return;
+      }
+
+      const target = devices[0];
+      alamatPrinterNative = target.address || target.id || target.macAddress;
+      namaPrinterNative = target.name || alamatPrinterNative;
+
+      if (btPlugin.connect) {
+        await btPlugin.connect({ address: alamatPrinterNative });
+      }
+
+      printerNativeTerhubung = true;
+      btnConnect.innerText = 'Terhubung: ' + namaPrinterNative;
+      btnConnect.style.backgroundColor = '#16a34a';
+      statusText.style.color = '#16a34a';
+      statusText.innerText = 'Printer siap digunakan (APK)!';
+    } catch (error) {
+      printerNativeTerhubung = false;
+      statusText.style.color = '#dc2626';
+      statusText.innerText = 'Gagal terhubung: ' + error.message;
+    }
+    return;
+  }
+
   if (!navigator.bluetooth) {
     alert('Buka halaman ini lewat Google Chrome untuk memakai Bluetooth!');
     return;
@@ -69,6 +140,24 @@ async function hubungkanBluetooth() {
 }
 
 async function kirimKePrinter(dataArray) {
+  if (isCapacitorNative()) {
+    const btPlugin = getNativeBluetoothPlugin();
+    if (!btPlugin || !printerNativeTerhubung) {
+      throw new Error('Printer native APK belum terhubung.');
+    }
+
+    const bytesArray = Array.from(dataArray);
+    if (btPlugin.writeBytes) {
+      await btPlugin.writeBytes({ address: alamatPrinterNative, bytes: bytesArray });
+    } else if (btPlugin.write) {
+      const decoder = new TextDecoder();
+      await btPlugin.write({ address: alamatPrinterNative, value: decoder.decode(dataArray) });
+    } else {
+      throw new Error('Metode tulis data pada plugin Bluetooth native belum sesuai.');
+    }
+    return;
+  }
+
   if (!karakterPrint) return;
   const ukuranPaket = 60;
   for (let i = 0; i < dataArray.length; i += ukuranPaket) {
@@ -81,16 +170,15 @@ async function kirimKePrinter(dataArray) {
     await new Promise(resolve => setTimeout(resolve, 15));
   }
 }
-
 // 2. Cetak Potongan Gambar Crop ke BTP 80mm
 async function cetakGambarBluetooth() {
   if (!gambarAsli.src) {
     alert('Pilih atau foto gambar terlebih dahulu!');
     return;
   }
-  if (!karakterPrint) {
+  if (!printerSudahSiap()) {
     await hubungkanBluetooth();
-    if (!karakterPrint) return;
+    if (!printerSudahSiap()) return;
   }
 
   statusText.style.color = '#0284c7';
@@ -149,6 +237,7 @@ async function cetakGambarBluetooth() {
     statusText.innerText = 'Gagal mencetak: ' + err.message;
   }
 }
+
 // 3. Cetak Teks + Barcode Jadi Satu Resi ke BTP-P33
 async function cetakTeksBluetooth() {
   const isiTeks = hasilTeks.value.trim();
@@ -159,9 +248,9 @@ async function cetakTeksBluetooth() {
     return;
   }
 
-  if (!karakterPrint) {
+  if (!printerSudahSiap()) {
     await hubungkanBluetooth();
-    if (!karakterPrint) return;
+    if (!printerSudahSiap()) return;
   }
 
   statusText.style.color = '#0284c7';
