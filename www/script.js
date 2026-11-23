@@ -307,6 +307,17 @@ async function kirimKePrinter(dataArray) {
         throw new Error('Plugin SPP Bluetooth tidak ditemukan.');
       }
 
+      if (typeof sppPlugin.sendData === 'function') {
+        const decoder = new TextDecoder('latin1');
+        const stringData = decoder.decode(dataArray);
+        for (let i = 0; i < stringData.length; i += ukuranPaket) {
+          const potonganStr = stringData.slice(i, i + ukuranPaket);
+          await sppPlugin.sendData({ data: potonganStr, address: alamatPrinterNative });
+          await new Promise((resolve) => setTimeout(resolve, 15));
+        }
+        return;
+      }
+
       if (typeof sppPlugin.writeBytes === 'function') {
         await sppPlugin.writeBytes({ address: alamatPrinterNative, bytes: Array.from(dataArray) });
         return;
@@ -561,8 +572,8 @@ function buatBarcodeDariTeks(teksKhusus = null) {
     barcodeArea.style.display = 'block';
   }
   setStatus('Barcode (' + isiTeks + ') tersimpan! Sekarang kamu bisa crop teks alamat.', '#7c3aed');
-  }
-      // 5. Muat Gambar dari Kamera maupun Galeri
+      }
+                // 5. Muat Gambar dari Kamera maupun Galeri
 function muatGambarDariInput(event) {
   perbaruiReferensiDOM();
   const daftarFile = event?.target?.files;
@@ -798,4 +809,5 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', perbaruiReferensiDOM);
 } else {
   perbaruiReferensiDOM();
-    }
+               }
+              
